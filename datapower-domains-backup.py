@@ -25,6 +25,17 @@ def backup_machine(address, username, password, soma_port, domains2backup, ignor
     with open(output_file, "wb") as backup_file:
         backup_file.write(base64.b64decode(file_content))
     print('Done!')
+    
+def secure_backup_machine(address, username, password, soma_port, crypto_certificate_name, backup_destination, ignore_tls_issues):
+    print('Trying to access ' + address + '\'s XML Management Interface...')
+    url = 'https://' + address + ':' + str(soma_port) + '/service/mgmt/amp/3.0'
+    headers = {'Authorization' : 'Basic ' + str(base64.b64encode((username + ':' + password).encode()).decode())}
+    payload = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns="http://www.datapower.com/schemas/appliance/management/3.0"><soapenv:Header/><soapenv:Body><ns:SecureBackupRequest><ns:CryptoCertificateName>' + crypto_certificate_name + '</ns:CryptoCertificateName><ns:SecureBackupDestination>' + backup_destination + '</ns:SecureBackupDestination></ns:SecureBackupRequest></soapenv:Body></soapenv:Envelope>'
+    response = requests.post(url, data = payload, headers = headers, verify = not ignore_tls_issues)
+    if b'<amp:Status>ok</amp:Status>' in response.content:
+        print('Secure backup done successfully.')
+    else:
+        print('Secure backup failed.')
 
 file_content = ''
 def fetch_xml_element(node):
@@ -38,3 +49,6 @@ def fetch_xml_element(node):
 
 backup_machine('machine1', 'user', 'pass', 5550, ['domain1', 'domain2'], True)
 #backup_machine('machine2', 'user', 'pass', 5550, ['domain1', 'domain2', 'domain3'], True)
+
+secure_backup_machine('machine1', 'user', 'pass', 5550, 'backup', 'ftp://username:password@ftpserver/datapowerbackup', True)
+#secure_backup_machine('machine1', 'user', 'pass', 5550, 'backup', 'temporary:///securebackup', True)
